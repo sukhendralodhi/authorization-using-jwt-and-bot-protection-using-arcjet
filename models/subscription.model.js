@@ -69,22 +69,29 @@ const subscriptionSchema = new mongoose.Schema({
 });
 
 subscriptionSchema.pre("save", function (next) {
-    if (this.renewalDate) {
+    if (this.startDate && this.frequency) {
         const renewalPeriods = {
             daily: 1,
             weekly: 7,
             monthly: 30,
             yearly: 365,
         };
-        this.renewalDate = new Date(this.startDate);
-        this.required.setDate(this.renewalDate.getDate() + renewalPeriods[this.frequency]);
+
+        // Set renewal date only if it's not provided or needs updating
+        if (!this.renewalDate) {
+            const renewalDate = new Date(this.startDate);
+            renewalDate.setDate(renewalDate.getDate() + renewalPeriods[this.frequency]);
+            this.renewalDate = renewalDate;
+        }
     }
-    //    auto update the satatus 
-    if (this.renewalDate < new Date()) {
+
+    if (this.renewalDate && this.renewalDate < new Date()) {
         this.status = "expired";
     }
 
-})
+    next();
+});
+
 
 const Subscription = mongoose.model("Subscription", subscriptionSchema);
 export default Subscription;
